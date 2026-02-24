@@ -11,8 +11,8 @@
   background-color: var(--bg-deep);
   background-image: radial-gradient(
     circle,
-    rgba(139, 92, 246, 0.12) 1px,
-    transparent 1px
+    rgba(139, 92, 246, 0.18) 2px,
+    transparent 2px
   );
-  background-size: 24px 24px;
+  background-size: 32px 32px;
 }

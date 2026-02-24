@@ -110,6 +110,8 @@ export class AiService {
     userId: string;
   }) {
     const sid = sessionId ?? `${userId}-default`;
+    const startTime = Date.now();
+    const timings: { step: string; ms: number }[] = [];
 
     if (!this.sessions.has(sid)) {
       this.sessions.set(sid, []);
@@ -144,7 +146,9 @@ export class AiService {
     while (iterations < MAX_TOOL_ITERATIONS) {
       iterations++;
 
+      const llmStart = Date.now();
       const response = await llmWithTools.invoke(messages);
+      timings.push({ step: `llm_call_${iterations}`, ms: Date.now() - llmStart });
       messages.push(response);
 
       // Check if the LLM wants to call tools
@@ -185,7 +189,9 @@ export class AiService {
         executedToolCalls.push({ name: toolCall.name, args: toolCall.args ?? {} });
 
         try {
+          const toolStart = Date.now();
           const result = await tool.invoke(toolCall.args);
+          timings.push({ step: `tool_${toolCall.name}`, ms: Date.now() - toolStart });
           messages.push(
             new ToolMessage({
               tool_call_id: toolCallId,
@@ -223,14 +229,17 @@ export class AiService {
       history.splice(0, history.length - MAX_HISTORY_MESSAGES);
     }
 
+    const totalMs = Date.now() - startTime;
+    const timingStr = timings.map((t) => `${t.step}=${t.ms}ms`).join(', ');
     this.logger.log(
-      `Chat completed [session=${sid}, iterations=${iterations}]`
+      `Chat completed [session=${sid}, iterations=${iterations}, total=${totalMs}ms, ${timingStr}]`
     );
 
     return {
       answer: finalAnswer,
       sessionId: sid,
-      toolCalls: executedToolCalls
+      toolCalls: executedToolCalls,
+      performance: { totalMs, iterations, timings }
     };
   }
 
