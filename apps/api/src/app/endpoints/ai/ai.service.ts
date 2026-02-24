@@ -416,7 +416,7 @@ export class AiService {
       `You are a neutral financial assistant. Please analyze the following investment portfolio (base currency being ${userCurrency}) in simple words.`,
       holdingsTableString,
       'Structure your answer with these sections:',
-      'Overview: Briefly summarize the portfolio's composition and allocation rationale.',
+      "Overview: Briefly summarize the portfolio's composition and allocation rationale.",
       'Risk Assessment: Identify potential risks, including market volatility, concentration, and sectoral imbalances.',
       'Advantages: Highlight strengths, focusing on growth potential, diversification, or other benefits.',
       'Disadvantages: Point out weaknesses, such as overexposure or lack of defensive assets.',
