@@ -162,12 +162,13 @@ export class AiService {
       const toolMap = new Map(tools.map((t) => [t.name, t]));
 
       for (const toolCall of toolCalls) {
+        const toolCallId = toolCall.id ?? `call_${Date.now()}_${toolCall.name}`;
         const tool = toolMap.get(toolCall.name);
 
         if (!tool) {
           messages.push(
             new ToolMessage({
-              toolCallId: toolCall.id,
+              tool_call_id: toolCallId,
               content: JSON.stringify({
                 error: `Unknown tool: ${toolCall.name}`
               })
@@ -177,14 +178,14 @@ export class AiService {
         }
 
         this.logger.log(
-          `Executing tool: ${toolCall.name} [session=${sid}, iteration=${iterations}]`
+          `Executing tool: ${toolCall.name} (id=${toolCallId}) [session=${sid}, iteration=${iterations}]`
         );
 
         try {
           const result = await tool.invoke(toolCall.args);
           messages.push(
             new ToolMessage({
-              toolCallId: toolCall.id,
+              tool_call_id: toolCallId,
               content:
                 typeof result === 'string' ? result : JSON.stringify(result)
             })
@@ -195,7 +196,7 @@ export class AiService {
           );
           messages.push(
             new ToolMessage({
-              toolCallId: toolCall.id,
+              tool_call_id: toolCallId,
               content: JSON.stringify({
                 error: `Tool execution failed: ${error.message}`
               })
