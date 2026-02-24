@@ -18,6 +18,7 @@ COPY ./CHANGELOG.md CHANGELOG.md
 COPY ./LICENSE LICENSE
 COPY ./package.json package.json
 COPY ./package-lock.json package-lock.json
+COPY ./.npmrc .npmrc
 COPY ./prisma/schema.prisma prisma/
 
 RUN npm install
@@ -31,6 +32,7 @@ COPY ./replace.build.mjs replace.build.mjs
 COPY ./tsconfig.base.json tsconfig.base.json
 
 ENV NX_DAEMON=false
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN npm run build:production
 
 # Prepare the dist image with additional node_modules
