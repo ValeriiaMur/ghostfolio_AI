@@ -1,0 +1,42 @@
+name: AI Agent Evals
+
+on:
+  pull_request:
+    paths:
+      - 'apps/api/src/app/endpoints/ai/**'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/api/src/app/endpoints/ai/**'
+  workflow_dispatch:
+
+jobs:
+  deterministic-evals:
+    name: Deterministic Eval Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Run tool routing evals (20 happy path + 10 edge + 6 accuracy)
+        run: npx jest --config apps/api/jest.config.ts --testPathPattern "evals/tool-routing" --verbose
+
+      - name: Run safety & adversarial evals (10 adversarial + assertions)
+        run: npx jest --config apps/api/jest.config.ts --testPathPattern "evals/safety" --verbose
+
+      - name: Verify 100% pass on Tier 1-2 accuracy tests
+        run: |
+          npx jest --config apps/api/jest.config.ts --testPathPattern "evals/tool-routing" --testNamePattern "Tier 1|Tier 2|Data Accuracy" --verbose 2>&1
+          if [ $? -ne 0 ]; then
+            echo "::error::Tier 1-2 data accuracy tests must be 100% — cannot merge"
+            exit 1
+          fi

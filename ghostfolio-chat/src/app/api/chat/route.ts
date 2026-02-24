@@ -1,6 +1,9 @@
 import { chatWithAgent } from '@/lib/ghostfolio';
 import { NextRequest, NextResponse } from 'next/server';
 
+// Allow up to 60s for agent tool execution (Vercel Pro: 300s, Hobby: 60s)
+export const maxDuration = 60;
+
 /**
  * POST /api/chat
  *

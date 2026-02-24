@@ -139,6 +139,7 @@ export class AiService {
     // Agent loop: call LLM, execute tools, repeat until final answer
     let iterations = 0;
     let finalAnswer = '';
+    const executedToolCalls: { name: string; args: Record<string, unknown> }[] = [];
 
     while (iterations < MAX_TOOL_ITERATIONS) {
       iterations++;
@@ -180,6 +181,8 @@ export class AiService {
         this.logger.log(
           `Executing tool: ${toolCall.name} (id=${toolCallId}) [session=${sid}, iteration=${iterations}]`
         );
+
+        executedToolCalls.push({ name: toolCall.name, args: toolCall.args ?? {} });
 
         try {
           const result = await tool.invoke(toolCall.args);
@@ -226,7 +229,8 @@ export class AiService {
 
     return {
       answer: finalAnswer,
-      sessionId: sid
+      sessionId: sid,
+      toolCalls: executedToolCalls
     };
   }
 

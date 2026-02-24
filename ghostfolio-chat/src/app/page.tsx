@@ -41,10 +41,12 @@ export default function ChatPage() {
             </p>
             <div className="flex flex-wrap gap-2 justify-center">
               {[
-                "What's my portfolio worth?",
-                'How are my returns this year?',
-                'Show me my top holdings',
-                'Analyze my portfolio risk'
+                'Give me a summary of my portfolio',
+                'How is my portfolio performing year to date?',
+                'Show me my top 5 holdings by allocation',
+                'Analyze my portfolio risk and diversification',
+                'What is the current price of AAPL?',
+                'Which of my holdings are equities?'
               ].map((suggestion) => (
                 <button
                   key={suggestion}

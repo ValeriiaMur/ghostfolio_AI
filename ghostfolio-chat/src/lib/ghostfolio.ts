@@ -52,14 +52,19 @@ export async function chatWithAgent(
 ): Promise<{ answer: string; sessionId: string }> {
   const token = await getGhostfolioToken();
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 55000); // 55s timeout
+
   const response = await fetch(`${API_URL}/api/v1/ai/chat`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`
     },
-    body: JSON.stringify({ query, sessionId })
+    body: JSON.stringify({ query, sessionId }),
+    signal: controller.signal
   });
+  clearTimeout(timeout);
 
   if (!response.ok) {
     // If 401/403, clear cached token and retry once
