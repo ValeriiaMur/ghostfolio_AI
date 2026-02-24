@@ -36,8 +36,8 @@ ENV NODE_OPTIONS="--max-old-space-size=8192"
 ENV TS_NODE_TRANSPILE_ONLY=true
 
 # Build only the API and client (skip Storybook which has a 'keyv' type error)
-RUN nx run api:copy-assets && nx run api:build:production \
- && nx run client:copy-assets && nx run client:build:production \
+RUN npx nx run api:copy-assets && npx nx run api:build:production \
+ && npx nx run client:copy-assets && npx nx run client:build:production \
  && npm run replace-placeholders-in-build
 
 # Prepare the dist image with additional node_modules
