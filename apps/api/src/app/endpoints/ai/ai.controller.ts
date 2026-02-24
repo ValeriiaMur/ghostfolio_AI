@@ -6,25 +6,50 @@ import { permissions } from '@ghostfolio/common/permissions';
 import type { AiPromptMode, RequestWithUser } from '@ghostfolio/common/types';
 
 import {
+  Body,
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   Inject,
+  Logger,
   Param,
+  Post,
   Query,
   UseGuards
 } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 
+import { AiChatDto } from './ai-chat.dto';
 import { AiService } from './ai.service';
 
 @Controller('ai')
 export class AiController {
+  private readonly logger = new Logger(AiController.name);
+
   public constructor(
     private readonly aiService: AiService,
     private readonly apiService: ApiService,
     @Inject(REQUEST) private readonly request: RequestWithUser
   ) {}
+
+  @Post('chat')
+  @HasPermission(permissions.readAiPrompt)
+  @UseGuards(AuthGuard('jwt'), HasPermissionGuard)
+  @HttpCode(HttpStatus.OK)
+  public async chat(@Body() { query, sessionId }: AiChatDto) {
+    this.logger.log(`AI chat request [session=${sessionId ?? 'none'}]`);
+
+    // Tools now fetch portfolio data directly — no need to pre-fetch context
+    const response = await this.aiService.chat({
+      query,
+      sessionId,
+      userId: this.request.user.id
+    });
+
+    return response;
+  }
 
   @Get('prompt/:mode')
   @HasPermission(permissions.readAiPrompt)

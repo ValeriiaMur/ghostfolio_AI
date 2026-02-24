@@ -2,6 +2,15 @@ import { CleanedEnvAccessors } from 'envalid';
 
 export interface Environment extends CleanedEnvAccessors {
   ACCESS_TOKEN_SALT: string;
+  ANTHROPIC_API_KEY: string;
+  CHATGPT_MODEL: string;
+  OPENAI_API_KEY: string;
+  LANGCHAIN_API_KEY: string;
+  LANGCHAIN_TRACING_V2: string;
+  LANGCHAIN_PROJECT: string;
+  LANGFUSE_SECRET_KEY: string;
+  LANGFUSE_PUBLIC_KEY: string;
+  LANGFUSE_HOST: string;
   API_KEY_ALPHA_VANTAGE: string;
   API_KEY_BETTER_UPTIME: string;
   API_KEY_COINGECKO_DEMO: string;
