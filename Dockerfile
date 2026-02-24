@@ -33,7 +33,12 @@ COPY ./tsconfig.base.json tsconfig.base.json
 
 ENV NX_DAEMON=false
 ENV NODE_OPTIONS="--max-old-space-size=8192"
-RUN npm run build:production
+ENV TS_NODE_TRANSPILE_ONLY=true
+
+# Build only the API and client (skip Storybook which has a 'keyv' type error)
+RUN nx run api:copy-assets && nx run api:build:production \
+ && nx run client:copy-assets && nx run client:build:production \
+ && npm run replace-placeholders-in-build
 
 # Prepare the dist image with additional node_modules
 WORKDIR /ghostfolio/dist/apps/api
