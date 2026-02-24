@@ -33,7 +33,7 @@ import {
   createAnalyzeRiskTool
 } from './tools';
 
-const MAX_TOOL_ITERATIONS = 5;
+const MAX_TOOL_ITERATIONS = 3;
 const MAX_HISTORY_MESSAGES = 10; // sliding window of 5 turns (10 messages)
 
 const SYSTEM_PROMPT = `You are Ghostfolio AI, an expert financial portfolio assistant.
@@ -248,32 +248,34 @@ export class AiService {
   }
 
   private buildLLM(callbacks: any[]) {
-    const anthropicKey = process.env.ANTHROPIC_API_KEY;
     const openaiKey = process.env.OPENAI_API_KEY;
+    const anthropicKey = process.env.ANTHROPIC_API_KEY;
     const model = process.env.CHATGPT_MODEL ?? 'gpt-4o-mini';
 
-    if (anthropicKey) {
-      this.logger.log('Using Anthropic LLM');
-      return new ChatAnthropic({
-        anthropicApiKey: anthropicKey,
-        modelName: 'claude-sonnet-4-20250514',
-        maxTokens: 2048,
-        callbacks
-      });
-    }
-
+    // Prefer OpenAI GPT-4o-mini for speed and cost ($0.15/$0.60 per M tokens, ~100ms)
     if (openaiKey) {
       this.logger.log(`Using OpenAI LLM (${model})`);
       return new ChatOpenAI({
         openAIApiKey: openaiKey,
         modelName: model,
         maxTokens: 2048,
+        temperature: 0,
+        callbacks
+      });
+    }
+
+    if (anthropicKey) {
+      this.logger.log('Using Anthropic LLM (haiku)');
+      return new ChatAnthropic({
+        anthropicApiKey: anthropicKey,
+        modelName: 'claude-3-5-haiku-20241022',
+        maxTokens: 2048,
         callbacks
       });
     }
 
     throw new Error(
-      'No LLM API key configured. Set ANTHROPIC_API_KEY or OPENAI_API_KEY in .env'
+      'No LLM API key configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY in .env'
     );
   }
 
