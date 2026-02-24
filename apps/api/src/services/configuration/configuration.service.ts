@@ -22,6 +22,15 @@ export class ConfigurationService {
   public constructor() {
     this.environmentConfiguration = cleanEnv(process.env, {
       ACCESS_TOKEN_SALT: str(),
+      ANTHROPIC_API_KEY: str({ default: '' }),
+      CHATGPT_MODEL: str({ default: 'gpt-4o-mini' }),
+      OPENAI_API_KEY: str({ default: '' }),
+      LANGCHAIN_API_KEY: str({ default: '' }),
+      LANGCHAIN_TRACING_V2: str({ default: 'false' }),
+      LANGCHAIN_PROJECT: str({ default: '' }),
+      LANGFUSE_SECRET_KEY: str({ default: '' }),
+      LANGFUSE_PUBLIC_KEY: str({ default: '' }),
+      LANGFUSE_HOST: str({ default: 'https://us.cloud.langfuse.com' }),
       API_KEY_ALPHA_VANTAGE: str({ default: '' }),
       API_KEY_BETTER_UPTIME: str({ default: '' }),
       API_KEY_COINGECKO_DEMO: str({ default: '' }),
