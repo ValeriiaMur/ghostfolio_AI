@@ -60,52 +60,62 @@
 
 ## Architecture
 
-| Component | Technology | Location |
-|---|---|---|
-| Backend API | NestJS + Prisma + PostgreSQL + Redis | Railway |
-| Agent Framework | LangChain.js (tool-calling agent loop) | `apps/api/src/app/endpoints/ai/` |
-| LLM | GPT-4o-mini (fast, cheap ~$0.001/query) | OpenAI API |
-| Frontend | Next.js + Vercel AI SDK (useChat) | Vercel (`ghostfolio-chat/`) |
-| Observability | Langfuse callbacks | `buildLangfuseCallbacks()` |
-| Evals | Jest (deterministic) + Golden set YAML (live) | `evals/` |
-| CI | GitHub Actions | `.github/workflows/ai-evals.yml` |
+| Component       | Technology                                    | Location                         |
+| --------------- | --------------------------------------------- | -------------------------------- |
+| Backend API     | NestJS + Prisma + PostgreSQL + Redis          | Railway                          |
+| Agent Framework | LangChain.js (tool-calling agent loop)        | `apps/api/src/app/endpoints/ai/` |
+| LLM             | GPT-4o-mini (fast, cheap ~$0.001/query)       | OpenAI API                       |
+| Frontend        | Next.js + Vercel AI SDK (useChat)             | Vercel (`ghostfolio-chat/`)      |
+| Observability   | Langfuse callbacks                            | `buildLangfuseCallbacks()`       |
+| Evals           | Jest (deterministic) + Golden set YAML (live) | `evals/`                         |
+| CI              | GitHub Actions                                | `.github/workflows/ai-evals.yml` |
 
 ## Tools Detail
 
-| Tool | Service Wrapped | Key Data Returned |
-|---|---|---|
-| `get_portfolio_summary` | PortfolioService.getDetails() + AccountService | Total value, net worth, top holdings, allocation by class/sector, accounts |
-| `get_performance_metrics` | PortfolioService.getPerformance() | Net/gross performance %, annualized return, fees, dividends, chart data |
-| `query_holdings` | PortfolioService.getDetails() + filtering | Filtered holdings with symbol, price, quantity, allocation, performance |
-| `get_market_data` | DataProviderService.getQuotes/search() | Market price, state, historical data, symbol search results |
-| `analyze_risk` | PortfolioService.getDetails/getReport() | Diversification score, concentration analysis, sector/geo breakdown, suggestions |
+| Tool                      | Service Wrapped                                | Key Data Returned                                                                |
+| ------------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------- |
+| `get_portfolio_summary`   | PortfolioService.getDetails() + AccountService | Total value, net worth, top holdings, allocation by class/sector, accounts       |
+| `get_performance_metrics` | PortfolioService.getPerformance()              | Net/gross performance %, annualized return, fees, dividends, chart data          |
+| `query_holdings`          | PortfolioService.getDetails() + filtering      | Filtered holdings with symbol, price, quantity, allocation, performance          |
+| `get_market_data`         | DataProviderService.getQuotes/search()         | Market price, state, historical data, symbol search results                      |
+| `analyze_risk`            | PortfolioService.getDetails/getReport()        | Diversification score, concentration analysis, sector/geo breakdown, suggestions |
 
 ## Eval Breakdown
 
-| Category | Count | Type | Pass Threshold |
-|---|---|---|---|
-| Happy Path | 20 | Deterministic (Jest) | 95% |
-| Edge Cases | 10 | Deterministic (Jest) | 95% |
-| Adversarial | 10 | Deterministic (Jest) | 95% |
-| Multi-Step | 10 | Golden set (YAML, live) | 95% |
-| Tier 1-2 Accuracy | 6 | Deterministic (Jest) | **100%** |
-| **Total** | **56** | | |
+| Category          | Count  | Type                    | Pass Threshold |
+| ----------------- | ------ | ----------------------- | -------------- |
+| Happy Path        | 20     | Deterministic (Jest)    | 95%            |
+| Edge Cases        | 10     | Deterministic (Jest)    | 95%            |
+| Adversarial       | 10     | Deterministic (Jest)    | 95%            |
+| Multi-Step        | 10     | Golden set (YAML, live) | 95%            |
+| Tier 1-2 Accuracy | 6      | Deterministic (Jest)    | **100%**       |
+| **Total**         | **56** |                         |                |
 
 ## Performance Targets
 
-| Query Type | Target | Model |
-|---|---|---|
-| Portfolio summary | < 3s | GPT-4o-mini |
-| Performance analysis | < 5s | GPT-4o-mini |
-| Market data lookup | < 5s | GPT-4o-mini |
-| Complex multi-tool | < 10s | GPT-4o-mini |
+| Query Type           | Target | Model       |
+| -------------------- | ------ | ----------- |
+| Portfolio summary    | < 3s   | GPT-4o-mini |
+| Performance analysis | < 5s   | GPT-4o-mini |
+| Market data lookup   | < 5s   | GPT-4o-mini |
+| Complex multi-tool   | < 10s  | GPT-4o-mini |
+
+## Performance Improvements (all implemented):
+
+- **Compound tool** — `get_portfolio_overview` combines summary + performance + risk in ONE call (1 LLM round trip instead of 3)
+- **Per-request DetailsCache** — `DetailsCache` wraps `portfolioService.getDetails()` so all tools (summary, holdings, risk, overview) share the same DB result within a single chat request. Caches the Promise itself so even parallel tool calls share one DB query.
+- **Parallel tool execution** — agent loop uses `Promise.all()` to execute all tool calls concurrently instead of sequentially. When the LLM requests 2-3 tools, they run simultaneously.
+- **GPT-4o-mini** — fast, cheap model (~$0.001/query, ~100ms latency)
+- **Shortened system prompt** — reduced from ~200 tokens to ~50 tokens
+- **maxTokens 1024** — reduced from 2048 to speed up generation
+- **MAX_TOOL_ITERATIONS 3** — reduced from 5 to limit worst-case latency
 
 ## Cost
 
-| Metric | Target | Actual |
-|---|---|---|
+| Metric         | Target  | Actual                |
+| -------------- | ------- | --------------------- |
 | Per-query cost | < $0.05 | ~$0.001 (GPT-4o-mini) |
-| Monthly budget | < $50 | Well under |
+| Monthly budget | < $50   | Well under            |
 
 ## Run Commands
 

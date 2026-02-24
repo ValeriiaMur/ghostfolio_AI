@@ -4,10 +4,13 @@ import { PortfolioService } from '@ghostfolio/api/app/portfolio/portfolio.servic
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
+import { DetailsCache } from './details-cache';
+
 export function createPortfolioSummaryTool(
   portfolioService: PortfolioService,
   accountService: AccountService,
-  userId: string
+  userId: string,
+  detailsCache?: DetailsCache
 ) {
   return new DynamicStructuredTool({
     name: 'get_portfolio_summary',
@@ -30,12 +33,14 @@ export function createPortfolioSummaryTool(
     }),
     func: async ({ includeAccounts, topN }) => {
       try {
-        const details = await portfolioService.getDetails({
-          filters: [],
-          impersonationId: undefined,
-          userId,
-          withSummary: true
-        });
+        const details = detailsCache
+          ? await detailsCache.getDetails({ withSummary: true })
+          : await portfolioService.getDetails({
+              filters: [],
+              impersonationId: undefined,
+              userId,
+              withSummary: true
+            });
 
         const holdings = Object.values(details.holdings)
           .sort((a, b) => b.allocationInPercentage - a.allocationInPercentage)

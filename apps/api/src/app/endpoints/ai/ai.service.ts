@@ -30,35 +30,17 @@ import {
   createPerformanceMetricsTool,
   createQueryHoldingsTool,
   createMarketDataTool,
-  createAnalyzeRiskTool
+  createAnalyzeRiskTool,
+  createPortfolioOverviewTool,
+  DetailsCache
 } from './tools';
 
 const MAX_TOOL_ITERATIONS = 3;
 const MAX_HISTORY_MESSAGES = 10; // sliding window of 5 turns (10 messages)
 
-const SYSTEM_PROMPT = `You are Ghostfolio AI, an expert financial portfolio assistant.
+const SYSTEM_PROMPT = `You are Ghostfolio AI, a concise financial portfolio assistant. Use tools to query real data — NEVER guess numbers.
 
-CAPABILITIES:
-You have access to tools that query the user's real portfolio data from their Ghostfolio instance.
-Always use tools to get data — NEVER guess or hallucinate financial numbers.
-
-RULES:
-1. All portfolio values, returns, and allocations MUST come from tool results. Never invent numbers.
-2. When presenting financial data, always include the data freshness timestamp from tool results.
-3. For Tier 1 (hard facts like portfolio value, holdings count) and Tier 2 (calculations like returns, allocation %): present exactly as returned by tools.
-4. For Tier 3 (risk insights, diversification analysis): clearly label as "analytical assessment" based on the data.
-5. For Tier 4 (market context, price explanations): label the data source and timestamp.
-6. NEVER give specific investment advice (buy/sell recommendations). Present factual data and analytical observations only.
-7. If a tool returns an error, tell the user what went wrong. Do not fill in with made-up data.
-8. Include a financial disclaimer when providing analytical insights: "This is informational only and not financial advice."
-9. Be concise and specific. Format numbers clearly (e.g., $12,345.67, 15.2%).
-10. When the user asks a follow-up question, use context from the conversation to understand what they're referring to.
-
-RESPONSE FORMAT:
-- Lead with the direct answer to the user's question
-- Include relevant numbers and percentages
-- Note data freshness (e.g., "as of [timestamp]")
-- Add disclaimer for analytical content`;
+RULES: All numbers from tools only. No investment advice. Be brief and direct. Format: $12,345.67, 15.2%. On errors, say what failed. Add "Not financial advice." to analytical responses.`;
 
 @Injectable()
 export class AiService {
@@ -163,56 +145,53 @@ export class AiService {
         break;
       }
 
-      // Execute each tool call
+      // Execute all tool calls in PARALLEL for speed
       const toolMap = new Map(tools.map((t) => [t.name, t]));
 
-      for (const toolCall of toolCalls) {
-        const toolCallId = toolCall.id ?? `call_${Date.now()}_${toolCall.name}`;
-        const tool = toolMap.get(toolCall.name);
+      const toolResults = await Promise.all(
+        toolCalls.map(async (toolCall) => {
+          const toolCallId = toolCall.id ?? `call_${Date.now()}_${toolCall.name}`;
+          const tool = toolMap.get(toolCall.name);
 
-        if (!tool) {
-          messages.push(
-            new ToolMessage({
+          if (!tool) {
+            return new ToolMessage({
               tool_call_id: toolCallId,
               content: JSON.stringify({
                 error: `Unknown tool: ${toolCall.name}`
               })
-            })
+            });
+          }
+
+          this.logger.log(
+            `Executing tool: ${toolCall.name} (id=${toolCallId}) [session=${sid}, iteration=${iterations}]`
           );
-          continue;
-        }
 
-        this.logger.log(
-          `Executing tool: ${toolCall.name} (id=${toolCallId}) [session=${sid}, iteration=${iterations}]`
-        );
+          executedToolCalls.push({ name: toolCall.name, args: toolCall.args ?? {} });
 
-        executedToolCalls.push({ name: toolCall.name, args: toolCall.args ?? {} });
-
-        try {
-          const toolStart = Date.now();
-          const result = await tool.invoke(toolCall.args);
-          timings.push({ step: `tool_${toolCall.name}`, ms: Date.now() - toolStart });
-          messages.push(
-            new ToolMessage({
+          try {
+            const toolStart = Date.now();
+            const result = await tool.invoke(toolCall.args);
+            timings.push({ step: `tool_${toolCall.name}`, ms: Date.now() - toolStart });
+            return new ToolMessage({
               tool_call_id: toolCallId,
               content:
                 typeof result === 'string' ? result : JSON.stringify(result)
-            })
-          );
-        } catch (error) {
-          this.logger.error(
-            `Tool ${toolCall.name} failed: ${error.message}`
-          );
-          messages.push(
-            new ToolMessage({
+            });
+          } catch (error) {
+            this.logger.error(
+              `Tool ${toolCall.name} failed: ${error.message}`
+            );
+            return new ToolMessage({
               tool_call_id: toolCallId,
               content: JSON.stringify({
                 error: `Tool execution failed: ${error.message}`
               })
-            })
-          );
-        }
-      }
+            });
+          }
+        })
+      );
+
+      messages.push(...toolResults);
     }
 
     if (!finalAnswer) {
@@ -244,19 +223,32 @@ export class AiService {
   }
 
   /**
-   * Build the 5 MVP tools for the given user.
+   * Build the 6 MVP tools for the given user.
+   * Creates a per-request DetailsCache so multiple tools share the same
+   * getDetails() result instead of each hitting the DB separately.
    */
   private buildTools(userId: string) {
+    const detailsCache = new DetailsCache(this.portfolioService, userId);
+
     return [
+      // Compound tool — handles most general queries in 1 round trip
+      createPortfolioOverviewTool(
+        this.portfolioService,
+        this.accountService,
+        userId,
+        detailsCache
+      ),
+      // Individual tools for specific narrow queries
       createPortfolioSummaryTool(
         this.portfolioService,
         this.accountService,
-        userId
+        userId,
+        detailsCache
       ),
       createPerformanceMetricsTool(this.portfolioService, userId),
-      createQueryHoldingsTool(this.portfolioService, userId),
+      createQueryHoldingsTool(this.portfolioService, userId, detailsCache),
       createMarketDataTool(this.dataProviderService, this.marketDataService),
-      createAnalyzeRiskTool(this.portfolioService, userId)
+      createAnalyzeRiskTool(this.portfolioService, userId, detailsCache)
     ];
   }
 
@@ -271,7 +263,7 @@ export class AiService {
       return new ChatOpenAI({
         openAIApiKey: openaiKey,
         modelName: model,
-        maxTokens: 2048,
+        maxTokens: 1024,
         temperature: 0,
         callbacks
       });
@@ -282,7 +274,7 @@ export class AiService {
       return new ChatAnthropic({
         anthropicApiKey: anthropicKey,
         modelName: 'claude-3-5-haiku-20241022',
-        maxTokens: 2048,
+        maxTokens: 1024,
         callbacks
       });
     }

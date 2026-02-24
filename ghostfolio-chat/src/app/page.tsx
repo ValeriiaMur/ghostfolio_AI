@@ -1,8 +1,8 @@
 'use client';
 
 import { useChat } from 'ai/react';
-import { useRef, useEffect } from 'react';
 import Image from 'next/image';
+import { useRef, useEffect } from 'react';
 
 export default function ChatPage() {
   const { messages, input, handleInputChange, handleSubmit, isLoading, error } =
@@ -21,13 +21,25 @@ export default function ChatPage() {
       {/* Keyframes for floating */}
       <style jsx global>{`
         @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-8px); }
+          0%,
+          100% {
+            transform: translateY(0px);
+          }
+          50% {
+            transform: translateY(-8px);
+          }
         }
       `}</style>
 
       {/* Header */}
-      <header className="flex items-center gap-3 px-6 py-4 border-b" style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'rgba(10, 10, 26, 0.85)', backdropFilter: 'blur(12px)' }}>
+      <header
+        className="flex items-center gap-3 px-6 py-4 border-b"
+        style={{
+          borderColor: 'var(--border-subtle)',
+          backgroundColor: 'rgba(10, 10, 26, 0.85)',
+          backdropFilter: 'blur(12px)'
+        }}
+      >
         <Image
           src="/logo.png"
           alt="Ghostfolio AI"
@@ -46,21 +58,13 @@ export default function ChatPage() {
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-zinc-500 space-y-4">
             {/* Floating logo with shadow */}
-            <div
-              className="w-20 h-20 rounded-2xl overflow-hidden"
-              style={{
-                animation: 'float 3s ease-in-out infinite',
-                boxShadow: '0 8px 32px rgba(139, 92, 246, 0.3), 0 4px 16px rgba(0, 0, 0, 0.5)'
-              }}
-            >
-              <Image
-                src="/logo.png"
-                alt="Ghostfolio AI"
-                width={80}
-                height={80}
-                className="w-full h-full object-cover"
-              />
-            </div>
+            <Image
+              src="/logo.png"
+              alt="Ghostfolio AI"
+              width={80}
+              height={80}
+              className="w-full h-full object-cover"
+            />
             <p className="text-center max-w-md">
               Ask me about your portfolio — value, performance, holdings, risk
               analysis, or market data.
@@ -89,8 +93,14 @@ export default function ChatPage() {
                   }}
                   className="px-3 py-1.5 text-sm rounded-full border transition-colors hover:text-violet-300"
                   style={{ borderColor: 'var(--border-subtle)' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.5)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.15)')}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.borderColor =
+                      'rgba(139, 92, 246, 0.5)')
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.borderColor =
+                      'rgba(139, 92, 246, 0.15)')
+                  }
                 >
                   {suggestion}
                 </button>
@@ -106,12 +116,13 @@ export default function ChatPage() {
           >
             <div
               className={`max-w-2xl rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
-                m.role === 'user'
-                  ? 'text-white'
-                  : 'text-zinc-200'
+                m.role === 'user' ? 'text-white' : 'text-zinc-200'
               }`}
               style={{
-                backgroundColor: m.role === 'user' ? 'rgba(139, 92, 246, 0.35)' : 'var(--bg-surface)',
+                backgroundColor:
+                  m.role === 'user'
+                    ? 'rgba(139, 92, 246, 0.35)'
+                    : 'var(--bg-surface)',
                 border: `1px solid ${m.role === 'user' ? 'rgba(139, 92, 246, 0.4)' : 'var(--border-subtle)'}`
               }}
             >
@@ -122,7 +133,13 @@ export default function ChatPage() {
 
         {isLoading && (
           <div className="flex justify-start">
-            <div className="rounded-2xl px-4 py-3 text-sm text-zinc-400" style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+            <div
+              className="rounded-2xl px-4 py-3 text-sm text-zinc-400"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                border: '1px solid var(--border-subtle)'
+              }}
+            >
               <span className="inline-flex gap-1">
                 <span className="animate-bounce">●</span>
                 <span
@@ -154,23 +171,42 @@ export default function ChatPage() {
       </div>
 
       {/* Input */}
-      <div className="px-6 py-4" style={{ borderTop: '1px solid var(--border-subtle)', backgroundColor: 'rgba(10, 10, 26, 0.85)', backdropFilter: 'blur(12px)' }}>
+      <div
+        className="px-6 py-4"
+        style={{
+          borderTop: '1px solid var(--border-subtle)',
+          backgroundColor: 'rgba(10, 10, 26, 0.85)',
+          backdropFilter: 'blur(12px)'
+        }}
+      >
         <form onSubmit={handleSubmit} className="flex gap-3">
           <input
             value={input}
             onChange={handleInputChange}
             placeholder="Ask about your portfolio..."
             className="flex-1 rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none transition-colors"
-            style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}
-            onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.5)')}
-            onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.15)')}
+            style={{
+              backgroundColor: 'var(--bg-surface)',
+              border: '1px solid var(--border-subtle)'
+            }}
+            onFocus={(e) =>
+              (e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.5)')
+            }
+            onBlur={(e) =>
+              (e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.15)')
+            }
             disabled={isLoading}
           />
           <button
             type="submit"
             disabled={isLoading || !input.trim()}
             className="text-white px-5 py-3 rounded-xl text-sm font-medium transition-colors disabled:opacity-40"
-            style={{ background: isLoading || !input.trim() ? 'rgba(139, 92, 246, 0.2)' : 'rgba(139, 92, 246, 0.6)' }}
+            style={{
+              background:
+                isLoading || !input.trim()
+                  ? 'rgba(139, 92, 246, 0.2)'
+                  : 'rgba(139, 92, 246, 0.6)'
+            }}
           >
             Send
           </button>

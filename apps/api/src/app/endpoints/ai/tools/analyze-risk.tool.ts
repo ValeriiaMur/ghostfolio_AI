@@ -3,9 +3,12 @@ import { PortfolioService } from '@ghostfolio/api/app/portfolio/portfolio.servic
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
+import { DetailsCache } from './details-cache';
+
 export function createAnalyzeRiskTool(
   portfolioService: PortfolioService,
-  userId: string
+  userId: string,
+  detailsCache?: DetailsCache
 ) {
   return new DynamicStructuredTool({
     name: 'analyze_risk',
@@ -25,12 +28,14 @@ export function createAnalyzeRiskTool(
     }),
     func: async ({ includeRules }) => {
       try {
-        const details = await portfolioService.getDetails({
-          filters: [],
-          impersonationId: undefined,
-          userId,
-          withSummary: true
-        });
+        const details = detailsCache
+          ? await detailsCache.getDetails({ withSummary: true })
+          : await portfolioService.getDetails({
+              filters: [],
+              impersonationId: undefined,
+              userId,
+              withSummary: true
+            });
 
         const allHoldings = Object.values(details.holdings);
         const holdingsSorted = [...allHoldings].sort(
