@@ -32,7 +32,7 @@ COPY ./replace.build.mjs replace.build.mjs
 COPY ./tsconfig.base.json tsconfig.base.json
 
 ENV NX_DAEMON=false
-ENV NODE_OPTIONS="--max-old-space-size=4096"
+ENV NODE_OPTIONS="--max-old-space-size=8192"
 RUN npm run build:production
 
 # Prepare the dist image with additional node_modules
